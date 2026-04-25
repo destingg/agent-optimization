@@ -48,45 +48,52 @@ value_map = {
     for j in range(len(projects))
 }
 
-## model
-model = gp.Model("Assignment")
-model.Params.OutputFlag = 0
 
-## variables: X[agent, project] = 1 if agent is assigned to project
-X = model.addVars(agents, projects, lb=0, ub=1, vtype=GRB.BINARY, name="x")
+def build_model():
+    """Return (model, variables, obj_coeffs, obj_sense, problem_name, cost_unit)."""
+    model = gp.Model("Assignment")
+    model.Params.OutputFlag = 0
 
-## constraints: each project is assigned exactly one agent
-for j in projects:
-    model.addConstr(
-        gp.quicksum(X[(i, j)] for i in agents) == 1,
-        name=f"{j}_project_constr",
-    )
+    ## variables: X[agent, project] = 1 if agent is assigned to project
+    X = model.addVars(agents, projects, lb=0, ub=1, vtype=GRB.BINARY, name="x")
 
-## constraints: each agent is assigned at least one project
-for i in agents:
-    model.addConstr(
-        gp.quicksum(X[(i, j)] for j in projects) >= 1,
-        name=f"{i}_agent_constr",
-    )
+    ## constraints: each project is assigned exactly one agent
+    for j in projects:
+        model.addConstr(
+            gp.quicksum(X[(i, j)] for i in agents) == 1,
+            name=f"{j}_project_constr",
+        )
 
-## objective: maximize total suitability score
-model.setObjective(
-    gp.quicksum(value_map[(i, j)] * X[(i, j)] for i in agents for j in projects),
-    GRB.MAXIMIZE,
-)
-
-model.optimize()
-
-print("================ Assignment Problem: Resource Allocation ================")
-if model.Status == GRB.OPTIMAL:
-    print(f"Maximum total suitability score: {model.ObjVal:.0f}\n")
-    print(f"{'Agent':<45} {'Project':<6} {'Description':<30} {'Score'}")
-    print("-" * 95)
+    ## constraints: each agent is assigned exactly one project
     for i in agents:
-        for j in projects:
-            if X[(i, j)].X > 0.5:
-                print(
-                    f"{i:<45} {j:<6} {project_labels[j]:<30} {value_map[(i, j)]}"
-                )
-else:
-    print("No optimal solution found.")
+        model.addConstr(
+            gp.quicksum(X[(i, j)] for j in projects) == 1,
+            name=f"{i}_agent_constr",
+        )
+
+    return model, X, value_map, GRB.MAXIMIZE, "Assignment — Agent-to-Project Allocation", "score"
+
+
+if __name__ == "__main__":
+    model, X, obj_coeffs, obj_sense, _, _ = build_model()
+
+    ## objective: maximize total suitability score
+    model.setObjective(
+        gp.quicksum(obj_coeffs[(i, j)] * X[(i, j)] for i in agents for j in projects),
+        obj_sense,
+    )
+    model.optimize()
+
+    print("================ Assignment Problem: Resource Allocation ================")
+    if model.Status == GRB.OPTIMAL:
+        print(f"Maximum total suitability score: {model.ObjVal:.0f}\n")
+        print(f"{'Agent':<45} {'Project':<6} {'Description':<30} {'Score'}")
+        print("-" * 95)
+        for i in agents:
+            for j in projects:
+                if X[(i, j)].X > 0.5:
+                    print(
+                        f"{i:<45} {j:<6} {project_labels[j]:<30} {obj_coeffs[(i, j)]}"
+                    )
+    else:
+        print("No optimal solution found.")

@@ -13,8 +13,15 @@ The function randomises the objective n_simulations times, solves each
 perturbation, evaluates the *original* objective on every feasible solution
 found, then overlays the true optimum on the resulting histogram.
 
-Usage examples for each of the four problem files are shown at the bottom
-of this module (guarded by `if __name__ == "__main__"`).
+Each problem file (assignment, knapsack, network_routing, set_covering)
+exposes a build_model() function that returns:
+    (model, variables, obj_coeffs, obj_sense, problem_name, cost_unit)
+
+Run all four problems:
+    python simulation.py
+
+Run a single problem file directly (no simulation):
+    python assignment.py
 ─────────────────────────────────────────────────────────────────────────────
 """
 
@@ -152,175 +159,30 @@ def simulate_and_plot(
 
 
 # ─────────────────────────────────────────────────────────────────────────────
-# Usage examples — one block per problem file
+# Run all four problems — imports model + scenario directly from each file
 # ─────────────────────────────────────────────────────────────────────────────
 
 if __name__ == "__main__":
+    from assignment      import build_model as assignment_model
+    from knapsack        import build_model as knapsack_model
+    from network_routing import build_model as network_routing_model
+    from set_covering    import build_model as set_covering_model
 
-    # ── 1. Assignment Problem (assignment.py) ─────────────────────────────────
-    import gurobipy as gp
-    from gurobipy import GRB
-
-    agents_a = [
-        "Analytics & Insights Agent",
-        "Knowledge Management Agent",
-        "Marketing Campaign Orchestration Agent",
-        "Customer / Support Automation Agent",
-        "Data Quality & Monitoring Agent",
-        "Workflow Orchestration Agent",
-        "Governance & Compliance Agent",
+    problems = [
+        assignment_model,
+        knapsack_model,
+        network_routing_model,
+        set_covering_model,
     ]
-    projects_a = ["P1", "P2", "P3", "P4", "P5", "P6", "P7", "P8", "P9"]
-    values_a = [
-        [9, 6, 8, 5, 9, 7, 8, 6, 7],
-        [6, 9, 5, 8, 6, 7, 5, 9, 6],
-        [5, 6, 9, 4, 7, 9, 8, 5, 5],
-        [4, 9, 6, 7, 5, 6, 7, 8, 9],
-        [7, 5, 7, 6, 8, 5, 9, 5, 8],
-        [6, 6, 7, 6, 7, 8, 8, 7, 9],
-        [5, 6, 4, 9, 6, 5, 7, 6, 9],
-    ]
-    value_map_a = {
-        (agents_a[i], projects_a[j]): values_a[i][j]
-        for i in range(len(agents_a))
-        for j in range(len(projects_a))
-    }
 
-    m_a = gp.Model("Assignment")
-    X_a = m_a.addVars(agents_a, projects_a, lb=0, ub=1, vtype=GRB.BINARY, name="x")
-    for j in projects_a:
-        m_a.addConstr(gp.quicksum(X_a[(i, j)] for i in agents_a) == 1)
-    for i in agents_a:
-        m_a.addConstr(gp.quicksum(X_a[(i, j)] for j in projects_a) >= 1)
-
-    simulate_and_plot(
-        model=m_a,
-        variables=X_a,
-        obj_coeffs=value_map_a,
-        obj_sense=GRB.MAXIMIZE,
-        n_simulations=500,
-        problem_name="Assignment — Agent-to-Project Allocation",
-        cost_unit="score",
-    )
-
-    # ── 2. Knapsack Problem (knapsack.py) ─────────────────────────────────────
-    agents_k = [
-        "Intent Classifier", "Inventory Checker", "Fraud Detector",
-        "Order Processor", "Shipping Optimizer", "Returns Handler",
-        "Customer Support Bot", "Review Analyzer", "Upsell Recommender",
-        "Analytics Reporter",
-    ]
-    C_k = [800, 1200, 2500, 3000, 2200, 1800, 2000, 900, 1500, 1100]
-    P_k = [50, 70, 90, 95, 80, 65, 75, 45, 60, 50]
-    K_k = 4000
-    N_k = range(len(agents_k))
-
-    m_k = gp.Model("Knapsack")
-    x_k = m_k.addVars(N_k, lb=0, ub=1, vtype=GRB.BINARY, name="x")
-    m_k.addConstr(gp.quicksum(C_k[i] * x_k[i] for i in N_k) <= K_k)
-
-    simulate_and_plot(
-        model=m_k,
-        variables=x_k,
-        obj_coeffs={i: P_k[i] for i in N_k},
-        obj_sense=GRB.MAXIMIZE,
-        n_simulations=500,
-        problem_name="Knapsack — Agent Budget Selection",
-        cost_unit="tokens (M)",
-    )
-
-    # ── 3. Network Routing / Shortest Path (network_routing.py) ──────────────
-    nodes_n = [
-        "Coding Agent", "Writing Agent", "Marketing Dept",
-        "IT Dept", "Operations Dept", "Relay Hub A", "Relay Hub B",
-    ]
-    arcs_data_n = [
-        ("Coding Agent",  "Marketing Dept",  800),
-        ("Coding Agent",  "IT Dept",         600),
-        ("Coding Agent",  "Operations Dept", 300),
-        ("Coding Agent",  "Relay Hub A",     300),
-        ("Coding Agent",  "Relay Hub B",     200),
-        ("Writing Agent", "Marketing Dept",  500),
-        ("Writing Agent", "IT Dept",         200),
-        ("Writing Agent", "Operations Dept", 200),
-        ("Writing Agent", "Relay Hub A",     400),
-        ("Writing Agent", "Relay Hub B",     200),
-        ("Relay Hub A",   "Marketing Dept",  300),
-        ("Relay Hub A",   "IT Dept",         800),
-        ("Relay Hub A",   "Operations Dept", 500),
-        ("Relay Hub A",   "Relay Hub B",     500),
-        ("Relay Hub B",   "Marketing Dept",  800),
-        ("Relay Hub B",   "IT Dept",         100),
-        ("Relay Hub B",   "Operations Dept", 100),
-        ("Relay Hub B",   "Relay Hub A",     500),
-    ]
-    arcs_n   = [(a, b) for a, b, _ in arcs_data_n]
-    costs_n  = {(a, b): c for a, b, c in arcs_data_n}
-    caps_n   = {arc: 2000 for arc in arcs_n}
-    supplies_n = {"Coding Agent": 6500, "Writing Agent": 5500,
-                  "Marketing Dept": 0, "IT Dept": 0, "Operations Dept": 0,
-                  "Relay Hub A": 0, "Relay Hub B": 0}
-    demands_n  = {"Coding Agent": 0, "Writing Agent": 0,
-                  "Marketing Dept": 5000, "IT Dept": 4000, "Operations Dept": 3000,
-                  "Relay Hub A": 0, "Relay Hub B": 0}
-
-    m_n = gp.Model("Network Routing")
-    X_n = m_n.addVars(arcs_n, lb=0, ub=caps_n, vtype=GRB.CONTINUOUS, name="x")
-    for i in nodes_n:
-        m_n.addConstr(
-            supplies_n[i] + gp.quicksum(X_n[(j, i)] for j in nodes_n if (j, i) in arcs_n)
-            == demands_n[i] + gp.quicksum(X_n[(i, j)] for j in nodes_n if (i, j) in arcs_n)
+    for build_fn in problems:
+        model, variables, obj_coeffs, obj_sense, problem_name, cost_unit = build_fn()
+        simulate_and_plot(
+            model=model,
+            variables=variables,
+            obj_coeffs=obj_coeffs,
+            obj_sense=obj_sense,
+            n_simulations=500,
+            problem_name=problem_name,
+            cost_unit=cost_unit,
         )
-
-    simulate_and_plot(
-        model=m_n,
-        variables=X_n,
-        obj_coeffs=costs_n,
-        obj_sense=GRB.MINIMIZE,
-        n_simulations=500,
-        problem_name="Network Routing — Shortest Path",
-        cost_unit="$",
-    )
-
-    # ── 4. Set Covering Problem (set_covering.py) ─────────────────────────────
-    agents_s = [
-        "General Support Agent", "Access & Permissions Agent",
-        "CRM / Relationship Management Agent", "Campaign Orchestration Agent",
-        "Analytics & Insights Agent", "Billing & Transactions Agent",
-        "Onboarding & Setup Agent", "Knowledge Management Agent",
-        "Incident & Alert Handling Agent", "Procurement & Resources Agent",
-        "Governance & Compliance Agent", "Cost & Performance Optimization Agent",
-    ]
-    skills_s = ["A", "B", "C", "D", "E", "F", "G", "H", "I", "J"]
-    agent_skills_s = {
-        "General Support Agent":                    ["F", "C", "H"],
-        "Access & Permissions Agent":               ["F", "E", "G"],
-        "CRM / Relationship Management Agent":      ["A", "B", "C"],
-        "Campaign Orchestration Agent":             ["A", "B", "H"],
-        "Analytics & Insights Agent":               ["C", "D", "I"],
-        "Billing & Transactions Agent":             ["B", "D", "E"],
-        "Onboarding & Setup Agent":                 ["E", "F", "H"],
-        "Knowledge Management Agent":               ["C", "A"],
-        "Incident & Alert Handling Agent":          ["A", "I", "G"],
-        "Procurement & Resources Agent":            ["B", "E", "J"],
-        "Governance & Compliance Agent":            ["G", "C", "I"],
-        "Cost & Performance Optimization Agent":    ["D", "I", "J"],
-    }
-    agent_costs_s = {i: 20 for i in agents_s}
-
-    m_s = gp.Model("Set Covering")
-    X_s = m_s.addVars(agents_s, lb=0, ub=1, vtype=GRB.BINARY, name="x")
-    for j in skills_s:
-        m_s.addConstr(
-            gp.quicksum(X_s[i] for i in agents_s if j in agent_skills_s[i]) >= 1
-        )
-
-    simulate_and_plot(
-        model=m_s,
-        variables=X_s,
-        obj_coeffs=agent_costs_s,
-        obj_sense=GRB.MINIMIZE,
-        n_simulations=500,
-        problem_name="Set Covering — Skill Coverage",
-        cost_unit="k$",
-    )

@@ -52,43 +52,49 @@ agents = data["agents"]
 agent_skills = data["agent_skills"]
 agent_costs = {i: 20 for i in agents}  # $20k per agent
 
-## model
-model = gp.Model("Set Covering")
-model.Params.OutputFlag = 0
+def build_model():
+    """Return (model, variables, obj_coeffs, obj_sense, problem_name, cost_unit)."""
+    model = gp.Model("Set Covering")
+    model.Params.OutputFlag = 0
 
-## variables
-X = model.addVars(agents, lb=0, ub=1, vtype=GRB.BINARY, name="x")
+    ## variables
+    X = model.addVars(agents, lb=0, ub=1, vtype=GRB.BINARY, name="x")
 
-## constraints: every skill must be covered by at least one selected agent
-for j in skills:
-    model.addConstr(
-        gp.quicksum(X[i] for i in agents if j in agent_skills[i]) >= 1,
-        name=f"{j}_area_constr",
-    )
-
-## objective: minimize total cost of selected agents
-model.setObjective(
-    gp.quicksum(agent_costs[i] * X[i] for i in agents),
-    GRB.MINIMIZE,
-)
-
-model.optimize()
-
-print("================ Set-Covering: Skill Coverage ================")
-if model.Status == GRB.OPTIMAL:
-    selected = [i for i in agents if X[i].X > 0.5]
-    print(f"Minimum agents needed : {len(selected)}")
-    print(f"Total cost            : ${model.ObjVal:.0f}k")
-    print("\nSelected agents:")
-    for agent in selected:
-        covered = ", ".join(
-            f"{s}({skill_labels[s]})" for s in agent_skills[agent]
+    ## constraints: every skill must be covered by at least one selected agent
+    for j in skills:
+        model.addConstr(
+            gp.quicksum(X[i] for i in agents if j in agent_skills[i]) >= 1,
+            name=f"{j}_area_constr",
         )
-        print(f"  - {agent}  [{covered}]")
 
-    print("\nSkill coverage verification:")
-    for s in skills:
-        covering = [a for a in selected if s in agent_skills[a]]
-        print(f"  {s} ({skill_labels[s]}): covered by {covering}")
-else:
-    print("No optimal solution found.")
+    return model, X, agent_costs, GRB.MINIMIZE, "Set Covering — Skill Coverage", "k$"
+
+
+if __name__ == "__main__":
+    model, X, obj_coeffs, obj_sense, _, _ = build_model()
+
+    ## objective: minimize total cost of selected agents
+    model.setObjective(
+        gp.quicksum(obj_coeffs[i] * X[i] for i in agents),
+        obj_sense,
+    )
+    model.optimize()
+
+    print("================ Set-Covering: Skill Coverage ================")
+    if model.Status == GRB.OPTIMAL:
+        selected = [i for i in agents if X[i].X > 0.5]
+        print(f"Minimum agents needed : {len(selected)}")
+        print(f"Total cost            : ${model.ObjVal:.0f}k")
+        print("\nSelected agents:")
+        for agent in selected:
+            covered = ", ".join(
+                f"{s}({skill_labels[s]})" for s in agent_skills[agent]
+            )
+            print(f"  - {agent}  [{covered}]")
+
+        print("\nSkill coverage verification:")
+        for s in skills:
+            covering = [a for a in selected if s in agent_skills[a]]
+            print(f"  {s} ({skill_labels[s]}): covered by {covering}")
+    else:
+        print("No optimal solution found.")
