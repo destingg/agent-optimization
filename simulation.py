@@ -191,7 +191,7 @@ if __name__ == "__main__":
     for j in projects_a:
         m_a.addConstr(gp.quicksum(X_a[(i, j)] for i in agents_a) == 1)
     for i in agents_a:
-        m_a.addConstr(gp.quicksum(X_a[(i, j)] for j in projects_a) == 1)
+        m_a.addConstr(gp.quicksum(X_a[(i, j)] for j in projects_a) >= 1)
 
     simulate_and_plot(
         model=m_a,

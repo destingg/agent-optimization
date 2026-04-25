@@ -15,13 +15,13 @@ data = {
     "projects": ["P1", "P2", "P3", "P4", "P5", "P6", "P7", "P8", "P9"],
     # rows = agents, cols = projects
     "values": [
-        [9, 6, 8, 5, 9, 7, 8, 6, 7],  # Analytics & Insights Agent
-        [6, 9, 5, 8, 6, 7, 5, 9, 6],  # Knowledge Management Agent
-        [5, 6, 9, 4, 7, 9, 8, 5, 5],  # Marketing Campaign Orchestration Agent
-        [4, 9, 6, 7, 5, 6, 7, 8, 9],  # Customer / Support Automation Agent
-        [7, 5, 7, 6, 8, 5, 9, 5, 8],  # Data Quality & Monitoring Agent
-        [6, 6, 7, 6, 7, 8, 8, 7, 9],  # Workflow Orchestration Agent
-        [5, 6, 4, 9, 6, 5, 7, 6, 9],  # Governance & Compliance Agent
+        [9, 6, 8, 5, 8, 7, 8, 7, 7],  # Analytics & Insights Agent
+        [6, 8, 6, 8, 6, 7, 6, 9, 7],  # Knowledge Management Agent
+        [5, 7, 9, 5, 7, 8, 8, 6, 6],  # Marketing Campaign Orchestration Agent
+        [5, 9, 6, 7, 6, 7, 7, 8, 8],  # Customer / Support Automation Agent
+        [7, 6, 7, 6, 8, 6, 8, 6, 8],  # Data Quality & Monitoring Agent
+        [6, 7, 7, 7, 8, 8, 8, 7, 8],  # Workflow Orchestration Agent
+        [6, 7, 5, 9, 7, 6, 7, 7, 8],  # Governance & Compliance Agent
     ],
 }
 
@@ -62,10 +62,10 @@ for j in projects:
         name=f"{j}_project_constr",
     )
 
-## constraints: each agent is assigned exactly one project
+## constraints: each agent is assigned at least one project
 for i in agents:
     model.addConstr(
-        gp.quicksum(X[(i, j)] for j in projects) == 1,
+        gp.quicksum(X[(i, j)] for j in projects) >= 1,
         name=f"{i}_agent_constr",
     )
 
