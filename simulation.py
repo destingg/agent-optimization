@@ -3,28 +3,35 @@ simulation.py
 ─────────────────────────────────────────────────────────────────────────────
 Generic simulate-and-plot utility for Gurobi optimisation models.
 
+
 Works with any problem whose structure follows:
     • A built Gurobi model with flow/assignment/covering/knapsack constraints
     • A flat dict of {key: gp.Var} decision variables
     • A matching dict of {key: float} original objective coefficients
     • A known objective sense (GRB.MINIMIZE or GRB.MAXIMIZE)
 
+
 The function randomises the objective n_simulations times, solves each
 perturbation, evaluates the *original* objective on every feasible solution
 found, then overlays the true optimum on the resulting histogram.
+
 
 Each problem file (assignment, knapsack, network_routing, set_covering)
 exposes a build_model() function that returns:
     (model, variables, obj_coeffs, obj_sense, problem_name, cost_unit)
 
+
 Run all four problems:
     python simulation.py
+
 
 Run a single problem file directly (no simulation):
     python assignment.py
 ─────────────────────────────────────────────────────────────────────────────
 """
 
+
+import os
 import numpy as np
 import seaborn as sns
 import matplotlib.pyplot as plt
@@ -36,6 +43,7 @@ from gurobipy import GRB
 # Core function
 # ─────────────────────────────────────────────────────────────────────────────
 
+
 def simulate_and_plot(
     model,
     variables,
@@ -45,9 +53,11 @@ def simulate_and_plot(
     problem_name="Optimisation Problem",
     cost_unit="$",
     figsize=(10, 5),
+    save_dir="plots",
 ):
     """
     Simulate random feasible solutions and compare against the true optimum.
+
 
     Parameters
     ----------
@@ -71,6 +81,9 @@ def simulate_and_plot(
         (e.g. "$", "tokens", "score", "k$").
     figsize       : tuple
         Matplotlib figure dimensions.
+    save_dir      : str
+        Directory where the plot image will be saved.
+
 
     Returns
     -------
@@ -123,12 +136,17 @@ def simulate_and_plot(
                  color="#ABD1DC", label="Simulated")
 
     opt_label = (
-        f"Optimal = ${opt_cost:,.0f}"
-        if cost_unit == "$"
-        else f"Optimal = {opt_cost:,.2f} {cost_unit}"
+        # f"Optimal = ${opt_cost:,.0f}"
+        # if cost_unit == "$"
+        # else 
+        f"Optimal = {opt_cost:,.2f} {cost_unit}"
     )
     ax.axvline(opt_cost, color="#C6A477", linestyle="--",
                linewidth=2, label=opt_label)
+
+    sim_mean = np.mean(sim_costs)
+    ax.axvline(sim_mean, color="#7FAEAF", linestyle=":",
+               linewidth=2, label=f"Sim Mean = {sim_mean:,.2f} {cost_unit}")
 
     ax.set_title(
         f"Random Feasible vs Optimal — {problem_name}",
@@ -140,7 +158,16 @@ def simulate_and_plot(
     ax.legend()
     sns.despine()
     plt.tight_layout()
+
+    # ── save figure ───────────────────────────────────────────────────────────
+    os.makedirs(save_dir, exist_ok=True)
+    safe_name = problem_name.lower().replace(" ", "_").replace("/", "-")
+    save_path = os.path.join(save_dir, f"{safe_name}.png")
+    fig.savefig(save_path, dpi=150, bbox_inches="tight")
+    print(f"Plot saved → {save_path}")
+
     plt.show()
+    plt.close(fig)
 
     # ── printed summary ───────────────────────────────────────────────────────
     direction = "Maximum" if obj_sense == GRB.MAXIMIZE else "Minimum"
@@ -161,6 +188,7 @@ def simulate_and_plot(
 # ─────────────────────────────────────────────────────────────────────────────
 # Run all four problems — imports model + scenario directly from each file
 # ─────────────────────────────────────────────────────────────────────────────
+
 
 if __name__ == "__main__":
     from assignment      import build_model as assignment_model
@@ -185,4 +213,5 @@ if __name__ == "__main__":
             n_simulations=500,
             problem_name=problem_name,
             cost_unit=cost_unit,
+            save_dir="plots",
         )

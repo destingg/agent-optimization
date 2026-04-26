@@ -81,7 +81,7 @@ def build_model():
             name=f"{i}_balance_constr",
         )
 
-    return model, X, costs, GRB.MINIMIZE, "Network Routing — Shortest Path", "$"
+    return model, X, costs, GRB.MINIMIZE, "Network Routing — Agent Routing", "$"
 
 
 if __name__ == "__main__":
@@ -94,7 +94,7 @@ if __name__ == "__main__":
     )
     model.optimize()
 
-    print("================ Network / Shortest Path: Routing ================")
+    print("================ Network Routing Problem: Agent Routing ================")
     if model.Status == GRB.OPTIMAL:
         print(f"Minimum total routing cost: ${model.ObjVal:,.0f}\n")
         print(f"{'Arc':<45} {'Flow':>8} {'Cap':>6} {'Cost/req':>10} {'Total Cost':>12}")

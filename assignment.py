@@ -64,10 +64,10 @@ def build_model():
             name=f"{j}_project_constr",
         )
 
-    ## constraints: each agent is assigned exactly one project
+    ## constraints: each agent is assigned at least one project
     for i in agents:
         model.addConstr(
-            gp.quicksum(X[(i, j)] for j in projects) == 1,
+            gp.quicksum(X[(i, j)] for j in projects) >= 1,
             name=f"{i}_agent_constr",
         )
 
