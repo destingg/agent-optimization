@@ -62,7 +62,26 @@ arcs_data = [
 
 arcs = [(a, b) for a, b, _ in arcs_data]
 costs = {(a, b): c for a, b, c in arcs_data}
-capacities = {arc: 2000 for arc in arcs}  # max 2,000 requests per link
+capacities = {
+    ("Coding Agent",  "Marketing Dept"):  2000,
+    ("Coding Agent",  "IT Dept"):         2000,
+    ("Coding Agent",  "Operations Dept"): 1200,
+    ("Coding Agent",  "Relay Hub A"):     1500,
+    ("Coding Agent",  "Relay Hub B"):     1200,
+    ("Writing Agent", "Marketing Dept"):  2000,
+    ("Writing Agent", "IT Dept"):         1000,
+    ("Writing Agent", "Operations Dept"): 1000,
+    ("Writing Agent", "Relay Hub A"):     2000,
+    ("Writing Agent", "Relay Hub B"):     1200,
+    ("Relay Hub A",   "Marketing Dept"):  1500,
+    ("Relay Hub A",   "IT Dept"):         2000,
+    ("Relay Hub A",   "Operations Dept"): 2000,
+    ("Relay Hub A",   "Relay Hub B"):     2000,
+    ("Relay Hub B",   "Marketing Dept"):  2000,
+    ("Relay Hub B",   "IT Dept"):         1000,
+    ("Relay Hub B",   "Operations Dept"): 1000,
+    ("Relay Hub B",   "Relay Hub A"):     2000,
+}
 
 def build_model():
     """Return (model, variables, obj_coeffs, obj_sense, problem_name, cost_unit)."""
