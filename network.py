@@ -84,7 +84,7 @@ def build_model():
             name=f"{i}_balance_constr",
         )
 
-    return model, X, costs, GRB.MINIMIZE, "Network Routing — Agent Routing", "$"
+    return model, X, costs, GRB.MINIMIZE, "Network — Agent Routing", "$"
 
 
 if __name__ == "__main__":

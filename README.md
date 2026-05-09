@@ -62,7 +62,7 @@ Selects the minimum-cost subset of **12 AI agents** (at $20k each) that collecti
 |---|---|
 | Assignment | `plots/assignment_—_agent-to-project_allocation.png` |
 | Knapsack | `plots/knapsack_—_agent_budget_selection.png` |
-| Network Routing | `plots/network_routing_—_agent_routing.png` |
+| Network Routing | `plots/network_—_agent_routing.png` |
 | Set Covering | `plots/set_covering_—_skill_coverage.png` |
 
 ---
@@ -98,7 +98,7 @@ python simulation.py
 ```bash
 python assignment.py
 python knapsack.py
-python network_routing.py
+python network.py
 python set_covering.py
 ```
 

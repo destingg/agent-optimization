@@ -16,7 +16,7 @@ perturbation, evaluates the *original* objective on every feasible solution
 found, then overlays the true optimum on the resulting histogram.
 
 
-Each problem file (assignment, knapsack, network_routing, set_covering)
+Each problem file (assignment, knapsack, network, set_covering)
 exposes a build_model() function that returns:
     (model, variables, obj_coeffs, obj_sense, problem_name, cost_unit)
 
@@ -193,13 +193,13 @@ def simulate_and_plot(
 if __name__ == "__main__":
     from assignment      import build_model as assignment_model
     from knapsack        import build_model as knapsack_model
-    from network_routing import build_model as network_routing_model
+    from network        import build_model as network_model
     from set_covering    import build_model as set_covering_model
 
     problems = [
         assignment_model,
         knapsack_model,
-        network_routing_model,
+        network_model,
         set_covering_model,
     ]
 
