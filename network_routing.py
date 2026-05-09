@@ -2,86 +2,70 @@ import gurobipy as gp
 from gurobipy import GRB
 
 ## data
-# Nodes: supply (+), demand (-), relay (0)
-nodes = [
-    "Coding Agent",      # supply 6500
-    "Writing Agent",     # supply 5500
-    "Marketing Dept",    # demand 5000
-    "IT Dept",           # demand 4000
-    "Operations Dept",   # demand 3000
-    "Relay Hub A",       # relay (no net supply/demand)
-    "Relay Hub B",       # relay (no net supply/demand)
-]
-
-# Net balance per node: supply > 0, demand < 0, relay = 0
-supplies = {
-    "Coding Agent":      6500,
-    "Writing Agent":     5500,
-    "Marketing Dept":    0,
-    "IT Dept":           0,
-    "Operations Dept":   0,
-    "Relay Hub A":       0,
-    "Relay Hub B":       0,
+data = {
+    # Nodes: supply (+), demand (-), relay (0)
+    "nodes": [
+        "Coding Agent",      # supply 6500
+        "Writing Agent",     # supply 5500
+        "Marketing Dept",    # demand 5000
+        "IT Dept",           # demand 4000
+        "Operations Dept",   # demand 3000
+        "Relay Hub A",       # relay (no net supply/demand)
+        "Relay Hub B",       # relay (no net supply/demand)
+    ],
+    "supplies": {
+        "Coding Agent":      6500,
+        "Writing Agent":     5500,
+        "Marketing Dept":    0,
+        "IT Dept":           0,
+        "Operations Dept":   0,
+        "Relay Hub A":       0,
+        "Relay Hub B":       0,
+    },
+    "demands": {
+        "Coding Agent":      0,
+        "Writing Agent":     0,
+        "Marketing Dept":    5000,
+        "IT Dept":           4000,
+        "Operations Dept":   3000,
+        "Relay Hub A":       0,
+        "Relay Hub B":       0,
+    },
+    # Arcs: (from, to, cost_per_request, capacity_in_requests)
+    # Cluster A = Coding Agent, Cluster B = Writing Agent
+    "arcs": [
+        # from Coding Agent (Cluster A)
+        ("Coding Agent",  "Marketing Dept",  0.80, 2000),
+        ("Coding Agent",  "IT Dept",         0.60, 2000),
+        ("Coding Agent",  "Operations Dept", 0.30, 1200),
+        ("Coding Agent",  "Relay Hub A",     0.30, 1500),
+        ("Coding Agent",  "Relay Hub B",     0.20, 1200),
+        # from Writing Agent (Cluster B)
+        ("Writing Agent", "Marketing Dept",  0.50, 2000),
+        ("Writing Agent", "IT Dept",         0.20, 1000),
+        ("Writing Agent", "Operations Dept", 0.20, 1000),
+        ("Writing Agent", "Relay Hub A",     0.40, 2000),
+        ("Writing Agent", "Relay Hub B",     0.20, 1200),
+        # from Relay Hub A
+        ("Relay Hub A",   "Marketing Dept",  0.30, 1500),
+        ("Relay Hub A",   "IT Dept",         0.80, 2000),
+        ("Relay Hub A",   "Operations Dept", 0.50, 2000),
+        ("Relay Hub A",   "Relay Hub B",     0.50, 2000),
+        # from Relay Hub B
+        ("Relay Hub B",   "Marketing Dept",  0.80, 2000),
+        ("Relay Hub B",   "IT Dept",         0.10, 1000),
+        ("Relay Hub B",   "Operations Dept", 0.10, 1000),
+        ("Relay Hub B",   "Relay Hub A",     0.50, 2000),
+    ],
 }
-demands = {
-    "Coding Agent":      0,
-    "Writing Agent":     0,
-    "Marketing Dept":    5000,
-    "IT Dept":           4000,
-    "Operations Dept":   3000,
-    "Relay Hub A":       0,
-    "Relay Hub B":       0,
-}
 
-# Arcs: (from, to) with routing cost per request
-# Cluster A = Coding Agent, Cluster B = Writing Agent
-arcs_data = [
-    # from Coding Agent (Cluster A)
-    ("Coding Agent",  "Marketing Dept",  0.80),
-    ("Coding Agent",  "IT Dept",         0.60),
-    ("Coding Agent",  "Operations Dept", 0.30),
-    ("Coding Agent",  "Relay Hub A",     0.30),
-    ("Coding Agent",  "Relay Hub B",     0.20),
-    # from Writing Agent (Cluster B)
-    ("Writing Agent", "Marketing Dept",  0.50),
-    ("Writing Agent", "IT Dept",         0.20),
-    ("Writing Agent", "Operations Dept", 0.20),
-    ("Writing Agent", "Relay Hub A",     0.40),
-    ("Writing Agent", "Relay Hub B",     0.20),
-    # from Relay Hub A
-    ("Relay Hub A",   "Marketing Dept",  0.30),
-    ("Relay Hub A",   "IT Dept",         0.80),
-    ("Relay Hub A",   "Operations Dept", 0.50),
-    ("Relay Hub A",   "Relay Hub B",     0.50),
-    # from Relay Hub B
-    ("Relay Hub B",   "Marketing Dept",  0.80),
-    ("Relay Hub B",   "IT Dept",         0.10),
-    ("Relay Hub B",   "Operations Dept", 0.10),
-    ("Relay Hub B",   "Relay Hub A",     0.50),
-]
+nodes      = data["nodes"]
+supplies   = data["supplies"]
+demands    = data["demands"]
+arcs       = [(a, b) for a, b, _, __ in data["arcs"]]
+costs      = {(a, b): c   for a, b, c, __ in data["arcs"]}
+capacities = {(a, b): cap for a, b, _, cap in data["arcs"]}
 
-arcs = [(a, b) for a, b, _ in arcs_data]
-costs = {(a, b): c for a, b, c in arcs_data}
-capacities = {
-    ("Coding Agent",  "Marketing Dept"):  2000,
-    ("Coding Agent",  "IT Dept"):         2000,
-    ("Coding Agent",  "Operations Dept"): 1200,
-    ("Coding Agent",  "Relay Hub A"):     1500,
-    ("Coding Agent",  "Relay Hub B"):     1200,
-    ("Writing Agent", "Marketing Dept"):  2000,
-    ("Writing Agent", "IT Dept"):         1000,
-    ("Writing Agent", "Operations Dept"): 1000,
-    ("Writing Agent", "Relay Hub A"):     2000,
-    ("Writing Agent", "Relay Hub B"):     1200,
-    ("Relay Hub A",   "Marketing Dept"):  1500,
-    ("Relay Hub A",   "IT Dept"):         2000,
-    ("Relay Hub A",   "Operations Dept"): 2000,
-    ("Relay Hub A",   "Relay Hub B"):     2000,
-    ("Relay Hub B",   "Marketing Dept"):  2000,
-    ("Relay Hub B",   "IT Dept"):         1000,
-    ("Relay Hub B",   "Operations Dept"): 1000,
-    ("Relay Hub B",   "Relay Hub A"):     2000,
-}
 
 def build_model():
     """Return (model, variables, obj_coeffs, obj_sense, problem_name, cost_unit)."""
